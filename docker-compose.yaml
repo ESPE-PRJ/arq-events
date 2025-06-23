@@ -1,22 +1,172 @@
-version: "3.8"
-
 services:
-  rabbitmq:
+  gateway:
+    build:
+      context: "./gateway"
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    networks:
+      external_arq_net:
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  middleware:
     image: rabbitmq:3-management
-    container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-password}
+    depends_on:
+      - gateway
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - rabbitmq_net
+      external_arq_net:
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  ordenes:
+    build:
+      context: "./ordenes"
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVER_HOST=${ORDENES_SERVER_HOST:-"ordenes"}
+      - SERVER_NAME=${ORDENES_SERVER_NAME:-Ordenes}
+      - SERVER_PORT=${ORDENES_SERVER_PORT:-"3010"}
+      - DATABASE_HOST=${ORDENES_DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${ORDENES_DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${ORDENES_DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${ORDENES_DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${ORDENES_DATABASE_NAME:-"postgres"}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      external_arq_net:
+
+  cobros:
+    build:
+      context: "./cobros"
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVER_HOST=${COBROS_SERVER_HOST:-"cobros"}
+      - SERVER_NAME=${COBROS_SERVER_NAME:-Cobros}
+      - SERVER_PORT=${COBROS_SERVER_PORT:-"3020"}
+      - DATABASE_HOST=${COBROS_DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${COBROS_DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${COBROS_DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${COBROS_DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${COBROS_DATABASE_NAME:-"postgres"}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      external_arq_net:
+
+  envio:
+    build:
+      context: "./envio"
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVER_HOST=${ENVIO_SERVER_HOST:-"envio"}
+      - SERVER_NAME=${ENVIO_SERVER_NAME:-Envio}
+      - SERVER_PORT=${ENVIO_SERVER_PORT:-"3030"}
+      - DATABASE_HOST=${ENVIO_DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${ENVIO_DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${ENVIO_DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${ENVIO_DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${ENVIO_DATABASE_NAME:-"postgres"}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      external_arq_net:
+
+  inventario:
+    build:
+      context: "./inventario"
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVER_HOST=${INVENTARIO_SERVER_HOST:-"inventario"}
+      - SERVER_NAME=${INVENTARIO_SERVER_NAME:-Inventario}
+      - SERVER_PORT=${INVENTARIO_SERVER_PORT:-"3040"}
+      - DATABASE_HOST=${INVENTARIO_DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${INVENTARIO_DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${INVENTARIO_DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${INVENTARIO_DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${INVENTARIO_DATABASE_NAME:-"postgres"}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      external_arq_net:
+
+  despacho:
+    build:
+      context: "./despacho"
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVER_HOST=${DESPACHO_SERVER_HOST:-"despacho"}
+      - SERVER_NAME=${DESPACHO_SERVER_NAME:-Despacho}
+      - SERVER_PORT=${DESPACHO_SERVER_PORT:-"3050"}
+      - DATABASE_HOST=${DESPACHO_DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${DESPACHO_DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${DESPACHO_DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${DESPACHO_DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${DESPACHO_DATABASE_NAME:-"postgres"}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      external_arq_net:
+
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    ports:
+      - "3100:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    depends_on:
+      middleware:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin || exit 1"]
+      interval: 300s
+      retries: 3
+      start_period: 2s
+      timeout: 5s
+    networks:
+      external_arq_net:
 
 volumes:
   rabbitmq_data:
+  database_data:
 
 networks:
-  rabbitmq_net:
+  external_arq_net:
+    external: true
+    driver: bridge
