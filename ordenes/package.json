@@ -21,6 +21,7 @@
     "typeorm": "typeorm-ts-node-commonjs ",
     "migration:create": "env-cmd -f .env.migrations.local typeorm-ts-node-commonjs migration:create",
     "migration:gen": "env-cmd -f .env.migrations.local ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d config/data.source.ts migration:generate",
+    "migration:run:internal": "env-cmd -f .env ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d config/data.source.ts migration:run",
     "migration:run": "env-cmd -f .env.migrations.local ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d config/data.source.ts migration:run"
   },
   "dependencies": {
