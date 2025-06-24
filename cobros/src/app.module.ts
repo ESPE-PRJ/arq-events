@@ -15,7 +15,6 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
       databaseConfig.asProvider() as Partial<PostgresConnectionOptions>,
     ),
     ConfigModule.forRoot({
-      envFilePath: '.env',
       load: [serverConfig],
       isGlobal: true,
       cache: true,
