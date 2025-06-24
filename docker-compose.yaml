@@ -46,11 +46,11 @@ services:
       - SERVER_HOST=${ORDENES_SERVER_HOST:-"ordenes"}
       - SERVER_NAME=${ORDENES_SERVER_NAME:-Ordenes}
       - SERVER_PORT=${ORDENES_SERVER_PORT:-"3010"}
-      - DATABASE_HOST=${ORDENES_DATABASE_HOST:-"database"}
-      - DATABASE_PORT=${ORDENES_DATABASE_PORT:-"5432"}
-      - DATABASE_USER=${ORDENES_DATABASE_USER:-"admin"}
-      - DATABASE_PASSWORD=${ORDENES_DATABASE_PASSWORD:-"password"}
-      - DATABASE_NAME=${ORDENES_DATABASE_NAME:-"postgres"}
+      - DATABASE_HOST=${DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${DATABASE_NAME:-"postgres"}
     depends_on:
       database:
         condition: service_healthy
@@ -66,11 +66,11 @@ services:
       - SERVER_HOST=${COBROS_SERVER_HOST:-"cobros"}
       - SERVER_NAME=${COBROS_SERVER_NAME:-Cobros}
       - SERVER_PORT=${COBROS_SERVER_PORT:-"3020"}
-      - DATABASE_HOST=${COBROS_DATABASE_HOST:-"database"}
+      - DATABASE_HOST=${DATABASE_HOST:-"database"}
       - DATABASE_PORT=${COBROS_DATABASE_PORT:-"5432"}
-      - DATABASE_USER=${COBROS_DATABASE_USER:-"admin"}
-      - DATABASE_PASSWORD=${COBROS_DATABASE_PASSWORD:-"password"}
-      - DATABASE_NAME=${COBROS_DATABASE_NAME:-"postgres"}
+      - DATABASE_USER=${DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${DATABASE_NAME:-"postgres"}
     depends_on:
       database:
         condition: service_healthy
@@ -86,11 +86,11 @@ services:
       - SERVER_HOST=${ENVIO_SERVER_HOST:-"envio"}
       - SERVER_NAME=${ENVIO_SERVER_NAME:-Envio}
       - SERVER_PORT=${ENVIO_SERVER_PORT:-"3030"}
-      - DATABASE_HOST=${ENVIO_DATABASE_HOST:-"database"}
-      - DATABASE_PORT=${ENVIO_DATABASE_PORT:-"5432"}
-      - DATABASE_USER=${ENVIO_DATABASE_USER:-"admin"}
-      - DATABASE_PASSWORD=${ENVIO_DATABASE_PASSWORD:-"password"}
-      - DATABASE_NAME=${ENVIO_DATABASE_NAME:-"postgres"}
+      - DATABASE_HOST=${DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${DATABASE_NAME:-"postgres"}
     depends_on:
       database:
         condition: service_healthy
@@ -106,11 +106,11 @@ services:
       - SERVER_HOST=${INVENTARIO_SERVER_HOST:-"inventario"}
       - SERVER_NAME=${INVENTARIO_SERVER_NAME:-Inventario}
       - SERVER_PORT=${INVENTARIO_SERVER_PORT:-"3040"}
-      - DATABASE_HOST=${INVENTARIO_DATABASE_HOST:-"database"}
-      - DATABASE_PORT=${INVENTARIO_DATABASE_PORT:-"5432"}
-      - DATABASE_USER=${INVENTARIO_DATABASE_USER:-"admin"}
-      - DATABASE_PASSWORD=${INVENTARIO_DATABASE_PASSWORD:-"password"}
-      - DATABASE_NAME=${INVENTARIO_DATABASE_NAME:-"postgres"}
+      - DATABASE_HOST=${DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${DATABASE_NAME:-"postgres"}
     depends_on:
       database:
         condition: service_healthy
@@ -126,11 +126,11 @@ services:
       - SERVER_HOST=${DESPACHO_SERVER_HOST:-"despacho"}
       - SERVER_NAME=${DESPACHO_SERVER_NAME:-Despacho}
       - SERVER_PORT=${DESPACHO_SERVER_PORT:-"3050"}
-      - DATABASE_HOST=${DESPACHO_DATABASE_HOST:-"database"}
-      - DATABASE_PORT=${DESPACHO_DATABASE_PORT:-"5432"}
-      - DATABASE_USER=${DESPACHO_DATABASE_USER:-"admin"}
-      - DATABASE_PASSWORD=${DESPACHO_DATABASE_PASSWORD:-"password"}
-      - DATABASE_NAME=${DESPACHO_DATABASE_NAME:-"postgres"}
+      - DATABASE_HOST=${DATABASE_HOST:-"database"}
+      - DATABASE_PORT=${DATABASE_PORT:-"5432"}
+      - DATABASE_USER=${DATABASE_USER:-"admin"}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-"password"}
+      - DATABASE_NAME=${DATABASE_NAME:-"postgres"}
     depends_on:
       database:
         condition: service_healthy
