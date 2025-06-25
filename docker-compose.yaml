@@ -162,6 +162,20 @@ services:
     networks:
       external_arq_net:
 
+  frontend:
+    build:
+      context: "./frontend"
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      - SERVER_PORT=${FRONTEND_SERVER_PORT:-"3000"}
+      - NEXT_PUBLIC_APP_NAME=${FRONTEND_APP_NAME:-"Frontend"}
+      - NEXT_PUBLIC_API_URL=${FRONTEND_API_URL:-"http://localhost:8080"}
+    restart: unless-stopped
+    networks:
+      external_arq_net:
+
 volumes:
   rabbitmq_data:
   database_data:
