@@ -14,6 +14,6 @@ export class OrdenItem extends BaseEntity {
   @Column({ type: 'int' })
   cantidad: number;
 
-  @Column()
+  @Column({ type: 'float' })
   precio_unitario: number;
 }

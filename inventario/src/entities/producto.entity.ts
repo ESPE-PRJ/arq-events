@@ -14,7 +14,7 @@ export class Producto extends BaseEntity {
   @Column({ type: 'text' })
   descripcion: string;
 
-  @Column()
+  @Column({ type: 'float' })
   precio: number;
 
   @OneToMany(() => Inventario, (inventario) => inventario.producto)

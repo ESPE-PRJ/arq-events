@@ -12,7 +12,7 @@ export class Orden extends BaseEntity {
   @Column({ type: 'enum', enum: OrdenEnum, default: OrdenEnum.PENDIENTE })
   estado: OrdenEnum;
 
-  @Column()
+  @Column({ type: 'float' })
   total: number;
 
   @OneToMany(() => OrdenItem, (ordenItem) => ordenItem.orden)
