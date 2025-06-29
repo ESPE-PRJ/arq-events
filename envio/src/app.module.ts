@@ -7,6 +7,7 @@ import serverConfig from 'config/server.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import databaseConfig from 'config/database.config';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { EnvioModule } from './envio/envio.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
       isGlobal: true,
       cache: true,
     }),
+    EnvioModule,
   ],
   controllers: [AppController],
   providers: [AppService],

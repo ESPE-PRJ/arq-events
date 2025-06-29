@@ -35,6 +35,8 @@ async function bootstrap() {
     `Server: ${serverConfig.get(ServerEnvironmentEnum.SERVER_NAME)} | Header: ${serverConfig.get(ServerEnvironmentEnum.SERVER_HEADER)} | Version: ${serverConfig.get(ServerEnvironmentEnum.SERVER_VERSION)} | Port: ${serverConfig.get(ServerEnvironmentEnum.SERVER_PORT)}`,
   );
 
+  logger.log(`Swagger docs available at: /api`);
+
   app.useGlobalInterceptors(new ServerHeaderInterceptor());
 
   await app.listen(serverConfig.get(ServerEnvironmentEnum.SERVER_PORT) ?? 3000);
