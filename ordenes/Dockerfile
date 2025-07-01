@@ -20,4 +20,4 @@ EXPOSE ${SERVER_PORT}
 HEALTHCHECK --interval=300s --timeout=3s --start-period=2s --retries=3 \
     CMD wget --spider --quiet http://${SERVER_HOST}:${SERVER_PORT}/health || exit 1
 
-CMD ["node", "dist/src/main"]
+CMD ["sh", "-c", "npm run migration:run:internal && node dist/src/main"]
