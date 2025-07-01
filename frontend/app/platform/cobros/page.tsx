@@ -4,9 +4,7 @@ import { useState, useEffect } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -20,12 +18,15 @@ import {
 } from "@/components/ui/dialog"
 import { CreditCard, Plus, Edit, Trash2, DollarSign } from "lucide-react"
 import { cobrosService } from "@/services/cobros.service"
-import type { Cobro } from "@/types"
+import { ordenesService } from "@/services/ordenes.service"
+import type { Cobro, Orden } from "@/types"
 
 export default function CobrosPage() {
   const [cobros, setCobros] = useState<Cobro[]>([])
+  const [ordenes, setOrdenes] = useState<Orden[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+
   const [nuevoCobro, setNuevoCobro] = useState<Cobro>({
     orden_id: "",
     estado: "pendiente",
@@ -33,16 +34,20 @@ export default function CobrosPage() {
   })
 
   useEffect(() => {
-    cargarCobros()
+    cargarDatos()
   }, [])
 
-  const cargarCobros = async () => {
+  const cargarDatos = async () => {
     try {
       setLoading(true)
-      const data = await cobrosService.obtenerCobros()
-      setCobros(data)
+      const [cobrosData, ordenesData] = await Promise.all([
+        cobrosService.obtenerCobros(),
+        ordenesService.obtenerOrdenes(),
+      ])
+      setCobros(cobrosData)
+      setOrdenes(ordenesData)
     } catch (error) {
-      console.error("Error cargando cobros:", error)
+      console.error("Error cargando datos:", error)
     } finally {
       setLoading(false)
     }
@@ -53,7 +58,7 @@ export default function CobrosPage() {
       await cobrosService.crearCobro(nuevoCobro)
       setDialogOpen(false)
       setNuevoCobro({ orden_id: "", estado: "pendiente", metodo_pago: "tarjeta" })
-      cargarCobros()
+      cargarDatos()
     } catch (error) {
       console.error("Error creando cobro:", error)
     }
@@ -62,7 +67,7 @@ export default function CobrosPage() {
   const actualizarEstadoCobro = async (id: string, estado: string) => {
     try {
       await cobrosService.actualizarCobro(id, { estado: estado as any })
-      cargarCobros()
+      cargarDatos()
     } catch (error) {
       console.error("Error actualizando cobro:", error)
     }
@@ -104,42 +109,53 @@ export default function CobrosPage() {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="orden_id">ID de Orden</Label>
-                  <Input
-                    id="orden_id"
+                  <Label htmlFor="orden">Orden</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={nuevoCobro.orden_id}
                     onChange={(e) => setNuevoCobro({ ...nuevoCobro, orden_id: e.target.value })}
-                    placeholder="ba8f3442-a6c0-4855-93b9-4a4363eac3ee"
-                  />
+                  >
+                    <option value="">Selecciona una orden</option>
+                    {ordenes.map((orden) => (
+                      <option key={orden.id} value={orden.id || ""}>
+                        #{orden.id?.slice(0, 8) || "N/A"} - {orden.cliente?.nombre || "Sin cliente"} - $
+                        {orden.total?.toFixed(2) || "0.00"}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="estado">Estado</Label>
-                  <Select
+                  <select
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={nuevoCobro.estado}
                     onChange={(e) => setNuevoCobro({ ...nuevoCobro, estado: e.target.value as any })}
                   >
                     <option value="pendiente">Pendiente</option>
                     <option value="pagado">Pagado</option>
                     <option value="fallido">Fallido</option>
-                  </Select>
+                  </select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="metodo_pago">Método de Pago</Label>
-                  <Select
+                  <select
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={nuevoCobro.metodo_pago}
                     onChange={(e) => setNuevoCobro({ ...nuevoCobro, metodo_pago: e.target.value as any })}
                   >
                     <option value="efectivo">Efectivo</option>
                     <option value="tarjeta">Tarjeta</option>
                     <option value="transferencia">Transferencia</option>
-                  </Select>
+                  </select>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={crearCobro}>Crear Cobro</Button>
+                <Button onClick={crearCobro} disabled={!nuevoCobro.orden_id}>
+                  Crear Cobro
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -195,7 +211,9 @@ export default function CobrosPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Orden ID</TableHead>
+                  <TableHead>Orden</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Total</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Método de Pago</TableHead>
                   <TableHead>Fecha</TableHead>
@@ -203,46 +221,52 @@ export default function CobrosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cobros.map((cobro) => (
-                  <TableRow key={cobro.id}>
-                    <TableCell className="font-mono text-sm">{cobro.id?.slice(0, 8)}...</TableCell>
-                    <TableCell className="font-mono text-sm">{cobro.orden_id.slice(0, 8)}...</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          cobro.estado === "pagado"
-                            ? "default"
-                            : cobro.estado === "fallido"
-                              ? "destructive"
-                              : "secondary"
-                        }
-                      >
-                        {cobro.estado}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="capitalize">{cobro.metodo_pago}</TableCell>
-                    <TableCell>{cobro.fecha_creacion}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {cobro.estado === "pendiente" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => actualizarEstadoCobro(cobro.id!, "pagado")}
-                          >
-                            Marcar Pagado
+                {cobros.map((cobro) => {
+                  const orden = ordenes.find((o) => o.id === cobro.orden_id)
+                  return (
+                    <TableRow key={cobro.id}>
+                      {/* CORREGIDO: Manejo seguro de valores undefined */}
+                      <TableCell className="font-mono text-sm">{cobro.id?.slice(0, 8) || "N/A"}...</TableCell>
+                      <TableCell className="font-mono text-sm">#{cobro.orden_id?.slice(0, 8) || "N/A"}...</TableCell>
+                      <TableCell>{orden?.cliente?.nombre || "-"}</TableCell>
+                      <TableCell>${orden?.total?.toFixed(2) || "0.00"}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            cobro.estado === "pagado"
+                              ? "default"
+                              : cobro.estado === "fallido"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
+                          {cobro.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="capitalize">{cobro.metodo_pago}</TableCell>
+                      <TableCell>{cobro.fecha_creacion || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {cobro.estado === "pendiente" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => actualizarEstadoCobro(cobro.id!, "pagado")}
+                            >
+                              Marcar Pagado
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
                           </Button>
-                        )}
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </CardContent>

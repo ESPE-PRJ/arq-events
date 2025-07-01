@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -79,12 +78,14 @@ export default function InventarioPage() {
 
   const crearMovimientoStock = async () => {
     try {
+      console.log("Creando movimiento:", nuevoStock) // Para debug
       await inventarioService.crearMovimientoStock(nuevoStock)
       setStockDialogOpen(false)
       setNuevoStock({ producto_id: "", tipo: "ENTRADA", cantidad: 0, motivo: "" })
       cargarDatos()
     } catch (error) {
       console.error("Error creando movimiento de stock:", error)
+      alert("Error al crear movimiento de stock")
     }
   }
 
@@ -93,8 +94,8 @@ export default function InventarioPage() {
       <MainLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Cargando inventario...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-500">Cargando inventario...</p>
           </div>
         </div>
       </MainLayout>
@@ -108,7 +109,7 @@ export default function InventarioPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Inventario</h2>
-            <p className="text-muted-foreground">Gestión de productos y control de stock</p>
+            <p className="text-gray-500">Gestión de productos y control de stock</p>
           </div>
         </div>
 
@@ -117,35 +118,35 @@ export default function InventarioPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Productos</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <Package className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{productos.length}</div>
-              <p className="text-xs text-muted-foreground">Productos registrados</p>
+              <p className="text-xs text-gray-500">Productos registrados</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Movimientos</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stock.length}</div>
-              <p className="text-xs text-muted-foreground">Movimientos registrados</p>
+              <p className="text-xs text-gray-500">Movimientos registrados</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Valor Inventario</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 ${productos.reduce((sum, p) => sum + p.precio, 0).toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground">Valor total estimado</p>
+              <p className="text-xs text-gray-500">Valor total estimado</p>
             </CardContent>
           </Card>
         </div>
@@ -209,7 +210,7 @@ export default function InventarioPage() {
                         step="0.01"
                         value={nuevoProducto.precio}
                         onChange={(e) =>
-                          setNuevoProducto({ ...nuevoProducto, precio: Number.parseFloat(e.target.value) })
+                          setNuevoProducto({ ...nuevoProducto, precio: Number.parseFloat(e.target.value) || 0 })
                         }
                         placeholder="0.00"
                       />
@@ -260,7 +261,7 @@ export default function InventarioPage() {
             </Card>
           </TabsContent>
 
-          {/* Stock Tab */}
+          {/* Stock Tab - VERSIÓN SIMPLIFICADA CON SELECT NATIVO */}
           <TabsContent value="stock" className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Movimientos de Stock</h3>
@@ -279,47 +280,45 @@ export default function InventarioPage() {
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="producto">Producto</Label>
-                      <Select
+                      <select
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={nuevoStock.producto_id}
-                        onValueChange={(value) => setNuevoStock({ ...nuevoStock, producto_id: value })}
+                        onChange={(e) => setNuevoStock({ ...nuevoStock, producto_id: e.target.value })}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un producto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {productos.map((producto) => (
-                            <SelectItem key={producto.id} value={producto.id || ""}>
-                              {producto.codigo} - {producto.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <option value="">Selecciona un producto</option>
+                        {productos.map((producto) => (
+                          <option key={producto.id} value={producto.id || ""}>
+                            {producto.codigo} - {producto.nombre}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
                     <div className="grid gap-2">
                       <Label htmlFor="tipo">Tipo de Movimiento</Label>
-                      <Select
+                      <select
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={nuevoStock.tipo}
-                        onValueChange={(value: "ENTRADA" | "SALIDA") => setNuevoStock({ ...nuevoStock, tipo: value })}
+                        onChange={(e) => setNuevoStock({ ...nuevoStock, tipo: e.target.value as "ENTRADA" | "SALIDA" })}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ENTRADA">Entrada</SelectItem>
-                          <SelectItem value="SALIDA">Salida</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <option value="ENTRADA">Entrada</option>
+                        <option value="SALIDA">Salida</option>
+                      </select>
                     </div>
+
                     <div className="grid gap-2">
                       <Label htmlFor="cantidad">Cantidad</Label>
                       <Input
                         id="cantidad"
                         type="number"
                         value={nuevoStock.cantidad}
-                        onChange={(e) => setNuevoStock({ ...nuevoStock, cantidad: Number.parseInt(e.target.value) })}
+                        onChange={(e) =>
+                          setNuevoStock({ ...nuevoStock, cantidad: Number.parseInt(e.target.value) || 0 })
+                        }
                         placeholder="0"
                       />
                     </div>
+
                     <div className="grid gap-2">
                       <Label htmlFor="motivo">Motivo</Label>
                       <Input
@@ -334,7 +333,12 @@ export default function InventarioPage() {
                     <Button variant="outline" onClick={() => setStockDialogOpen(false)}>
                       Cancelar
                     </Button>
-                    <Button onClick={crearMovimientoStock}>Registrar Movimiento</Button>
+                    <Button
+                      onClick={crearMovimientoStock}
+                      disabled={!nuevoStock.producto_id || !nuevoStock.motivo || nuevoStock.cantidad <= 0}
+                    >
+                      Registrar Movimiento
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -351,23 +355,28 @@ export default function InventarioPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stock.map((movimiento) => (
-                    <TableRow key={movimiento.id}>
-                      <TableCell>{movimiento.producto_id}</TableCell>
-                      <TableCell>
-                        <Badge variant={movimiento.tipo === "ENTRADA" ? "default" : "destructive"}>
-                          {movimiento.tipo === "ENTRADA" ? (
-                            <TrendingUp className="mr-1 h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="mr-1 h-3 w-3" />
-                          )}
-                          {movimiento.tipo}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{movimiento.cantidad}</TableCell>
-                      <TableCell>{movimiento.motivo}</TableCell>
-                    </TableRow>
-                  ))}
+                  {stock.map((movimiento) => {
+                    const producto = productos.find((p) => p.id === movimiento.producto_id)
+                    return (
+                      <TableRow key={movimiento.id}>
+                        <TableCell>
+                          {producto ? `${producto.codigo} - ${producto.nombre}` : movimiento.producto_id}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={movimiento.tipo === "ENTRADA" ? "default" : "destructive"}>
+                            {movimiento.tipo === "ENTRADA" ? (
+                              <TrendingUp className="mr-1 h-3 w-3" />
+                            ) : (
+                              <TrendingDown className="mr-1 h-3 w-3" />
+                            )}
+                            {movimiento.tipo}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{movimiento.cantidad}</TableCell>
+                        <TableCell>{movimiento.motivo}</TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </Card>
