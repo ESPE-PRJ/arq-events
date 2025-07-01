@@ -12,6 +12,8 @@ import { connectRabbitMQ } from './events/rabbitmq.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
+
   const despachoService = app.get(DespachoService);
 
   await connectRabbitMQ((routingKey, payload) => {
