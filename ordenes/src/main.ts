@@ -19,6 +19,8 @@ async function bootstrap() {
     logger.error('[RabbitMQ] Error al conectar con el broker:', error);
   }
 
+  app.enableCors();
+
   app.enableVersioning({
     type: VersioningType.URI,
     prefix: 'v',
