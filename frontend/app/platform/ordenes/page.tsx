@@ -17,7 +17,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { ShoppingCart, Plus, Eye, Edit, Trash2, X, AlertCircle } from "lucide-react"
+import {
+  ShoppingCart,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  X,
+  AlertCircle,
+  User,
+  Package,
+  Calendar,
+  DollarSign,
+} from "lucide-react"
 import { ordenesService, type CrearOrdenRequest } from "@/services/ordenes.service"
 import { cobrosService } from "@/services/cobros.service"
 import { inventarioService } from "@/services/inventario.service"
@@ -29,8 +41,10 @@ export default function OrdenesPage() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [creatingOrder, setCreatingOrder] = useState(false)
   const [error, setError] = useState<string>("")
+  const [selectedOrden, setSelectedOrden] = useState<Orden | null>(null)
 
   // CORREGIDO: Usar el tipo específico para crear órdenes
   const [nuevaOrden, setNuevaOrden] = useState<CrearOrdenRequest>({
@@ -125,11 +139,30 @@ export default function OrdenesPage() {
         orden_items: [],
       })
       cargarDatos()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error creando orden:", error)
       setError(`Error al crear la orden: ${error.message}`)
     } finally {
       setCreatingOrder(false)
+    }
+  }
+
+  const verOrden = (orden: Orden) => {
+    setSelectedOrden(orden)
+    setViewDialogOpen(true)
+  }
+
+  const getEstadoBadgeVariant = (estado: string) => {
+    switch (estado) {
+      case "completada":
+        return "default"
+      case "procesando":
+        return "secondary"
+      case "cancelada":
+        return "destructive"
+      default:
+        return "outline"
     }
   }
 
@@ -156,6 +189,7 @@ export default function OrdenesPage() {
             <p className="text-gray-500">Gestión de pedidos y órdenes de compra</p>
           </div>
 
+          {/* Modal para crear orden */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger>
               <Button>
@@ -302,6 +336,139 @@ export default function OrdenesPage() {
           </Dialog>
         </div>
 
+        {/* Modal para ver orden */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Detalles de la Orden
+              </DialogTitle>
+              <DialogDescription>Orden #{selectedOrden?.id?.slice(0, 8) || "N/A"}...</DialogDescription>
+            </DialogHeader>
+
+            {selectedOrden && (
+              <div className="space-y-6">
+                {/* Información General */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Cliente */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Información del Cliente
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div>
+                        <span className="text-sm font-medium">Nombre:</span>
+                        <p className="text-sm text-gray-600">{selectedOrden.cliente?.nombre || "N/A"}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Correo:</span>
+                        <p className="text-sm text-gray-600">{selectedOrden.cliente?.correo || "N/A"}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Dirección:</span>
+                        <p className="text-sm text-gray-600">{selectedOrden.cliente?.direccion || "N/A"}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Información de la Orden */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <ShoppingCart className="h-4 w-4" />
+                        Información de la Orden
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div>
+                        <span className="text-sm font-medium">Estado:</span>
+                        <div className="mt-1">
+                          <Badge variant={getEstadoBadgeVariant(selectedOrden.estado)}>{selectedOrden.estado}</Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Total:</span>
+                        <p className="text-lg font-bold text-green-600">${selectedOrden.total?.toFixed(2) || "0.00"}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Fecha de Creación:</span>
+                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {selectedOrden.created_at ? new Date(selectedOrden.created_at).toLocaleString() : "N/A"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Productos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Productos ({selectedOrden.orden_items?.length || 0} items)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Producto</TableHead>
+                          <TableHead>Código</TableHead>
+                          <TableHead className="text-right">Cantidad</TableHead>
+                          <TableHead className="text-right">Precio Unit.</TableHead>
+                          <TableHead className="text-right">Subtotal</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedOrden.orden_items?.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{item.producto?.nombre || "Producto no encontrado"}</div>
+                                <div className="text-sm text-gray-500">{item.producto?.descripcion || ""}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">{item.producto?.codigo || "N/A"}</TableCell>
+                            <TableCell className="text-right">{item.cantidad}</TableCell>
+                            <TableCell className="text-right">${item.precio_unitario.toFixed(2)}</TableCell>
+                            <TableCell className="text-right font-medium">
+                              ${(item.cantidad * item.precio_unitario).toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    {/* Total */}
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex justify-end">
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500">Total de la Orden</div>
+                          <div className="text-2xl font-bold text-green-600 flex items-center gap-1">
+                            <DollarSign className="h-5 w-5" />
+                            {selectedOrden.total?.toFixed(2) || "0.00"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -344,19 +511,7 @@ export default function OrdenesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          orden.estado === "completada"
-                            ? "default"
-                            : orden.estado === "procesando"
-                              ? "secondary"
-                              : orden.estado === "cancelada"
-                                ? "destructive"
-                                : "outline"
-                        }
-                      >
-                        {orden.estado}
-                      </Badge>
+                      <Badge variant={getEstadoBadgeVariant(orden.estado)}>{orden.estado}</Badge>
                     </TableCell>
                     <TableCell>${orden.total?.toFixed(2) || "0.00"}</TableCell>
                     <TableCell>
@@ -373,7 +528,7 @@ export default function OrdenesPage() {
                     <TableCell>{orden.created_at ? new Date(orden.created_at).toLocaleDateString() : "-"}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => verOrden(orden)}>
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm">
