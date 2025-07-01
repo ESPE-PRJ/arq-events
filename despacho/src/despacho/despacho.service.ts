@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Despacho } from '../entities/despacho.entity';
@@ -5,9 +10,15 @@ import { CreateDespachoDto } from './dto/create-despacho.dto';
 import { UpdateDespachoDto } from './dto/update-despacho.dto';
 import { Repository } from 'typeorm';
 import { Orden } from '../entities/orden.entity';
-
+import { Logger } from '@nestjs/common';
+import { publishEvent } from 'src/events/rabbitmq.service';
+import { DespachoEnum } from 'src/enums/despacho.enum';
 @Injectable()
 export class DespachoService {
+  // Logger para registrar eventos y errores
+  private readonly logger = new Logger(DespachoService.name);
+  private eventosPendientes: Map<string, { stock?: boolean; pago?: boolean }> =
+    new Map();
   constructor(
     @InjectRepository(Despacho)
     private despachoRepo: Repository<Despacho>,
@@ -66,5 +77,64 @@ export class DespachoService {
     if (!despacho) throw new NotFoundException('Despacho no encontrado');
     await this.despachoRepo.softRemove(despacho);
     return { deleted: true };
+  }
+
+  async handleOrdenEvent(routingKey: string, payload: any): Promise<void> {
+    const ordenId = payload?.ordenId;
+    if (!ordenId) {
+      this.logger.warn(`⚠️ Evento sin ordenId: ${routingKey}`);
+      return;
+    }
+
+    const estado = this.eventosPendientes.get(ordenId) || {};
+
+    if (routingKey === 'orden.stock-descontado') {
+      estado.stock = true;
+    }
+
+    if (routingKey === 'orden.pagada') {
+      estado.pago = true;
+    }
+
+    this.eventosPendientes.set(ordenId, estado);
+
+    if (estado.stock && estado.pago) {
+      try {
+        const orden = await this.ordenRepo.findOne({ where: { id: ordenId } });
+        if (!orden) {
+          this.logger.warn(
+            `⚠️ Orden ${ordenId} no encontrada al crear despacho`,
+          );
+          return;
+        }
+
+        const despacho = this.despachoRepo.create({
+          orden,
+          estado: DespachoEnum.EN_PREPARACION,
+          fecha_preparacion: new Date(),
+        });
+
+        await this.despachoRepo.save(despacho);
+
+        this.logger.log(`✅ Despacho creado para orden ${ordenId}`);
+
+        publishEvent('orden.lista-para-despacho', {
+          ordenId,
+          despachoId: despacho.id,
+          fecha_preparacion: despacho.fecha_preparacion,
+        });
+
+        this.eventosPendientes.delete(ordenId);
+      } catch (err) {
+        this.logger.error(
+          `❌ Error al crear despacho para orden ${ordenId}`,
+          err,
+        );
+      }
+    } else {
+      this.logger.debug(
+        `📥 Evento recibido para orden ${ordenId}. Estado parcial: ${JSON.stringify(estado)}`,
+      );
+    }
   }
 }

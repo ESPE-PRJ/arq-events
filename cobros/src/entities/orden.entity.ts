@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { BaseEntity } from 'common/entities/base.entity';
 import { OrdenEnum } from 'src/enums/orden.enum';
 import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';

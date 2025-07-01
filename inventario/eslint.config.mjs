@@ -17,7 +17,7 @@ export default tseslint.config(
         ...globals.node,
         ...globals.jest,
       },
-      ecmaVersion: 5,
+      ecmaVersion: 2022,
       sourceType: 'module',
       parserOptions: {
         projectService: true,
@@ -27,9 +27,14 @@ export default tseslint.config(
   },
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
+      // Reglas ajustadas para microservicios
+      '@typescript-eslint/no-explicit-any': 'off', // permite 'any' para payloads genéricos (como RabbitMQ)
+      '@typescript-eslint/no-floating-promises': 'warn', // advertencia, pero no error
+      '@typescript-eslint/no-unsafe-argument': 'warn', // útil para RabbitMQ, evitará errores bloqueantes
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/ban-types': 'off', // permite tipos como `{}` si los usas
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
 );

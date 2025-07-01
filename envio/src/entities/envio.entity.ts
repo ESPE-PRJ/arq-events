@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { BaseEntity } from 'common/entities/base.entity';
 import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 import { Despacho } from './despacho.entity';

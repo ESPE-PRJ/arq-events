@@ -7,9 +7,21 @@ import { useContainer } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
 import { ServerHeaderInterceptor } from 'common/interceptor/header.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { connectRabbitMQ } from './events/rabbitmq.service';
+import { InventarioService } from './inventario/inventario.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 1. Inicializar conexión a RabbitMQ
+  const inventarioService = app.get(InventarioService);
+  await connectRabbitMQ((routingKey, payload) => {
+    // Aquí decides cómo enrutar el evento según la routingKey
+    if (routingKey === 'orden.confirmada') {
+      inventarioService.handleOrdenConfirmada(payload);
+    }
+    // Puedes agregar más eventos en el futuro aquí
+  });
 
   app.enableVersioning({
     type: VersioningType.URI,
@@ -30,9 +42,14 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, documentFactory);
 
   const logger = new Logger('ServerInfo');
-
   logger.log(
-    `Server: ${serverConfig.get(ServerEnvironmentEnum.SERVER_NAME)} | Header: ${serverConfig.get(ServerEnvironmentEnum.SERVER_HEADER)} | Version: ${serverConfig.get(ServerEnvironmentEnum.SERVER_VERSION)} | Port: ${serverConfig.get(ServerEnvironmentEnum.SERVER_PORT)}`,
+    `✅ Inventario corriendo | Server: ${serverConfig.get(
+      ServerEnvironmentEnum.SERVER_NAME,
+    )} | Header: ${serverConfig.get(
+      ServerEnvironmentEnum.SERVER_HEADER,
+    )} | Version: ${serverConfig.get(
+      ServerEnvironmentEnum.SERVER_VERSION,
+    )} | Port: ${serverConfig.get(ServerEnvironmentEnum.SERVER_PORT)}`,
   );
 
   app.useGlobalInterceptors(new ServerHeaderInterceptor());

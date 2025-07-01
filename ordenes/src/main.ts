@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, VersioningType } from '@nestjs/common';
@@ -7,9 +6,18 @@ import { useContainer } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
 import { ServerHeaderInterceptor } from 'common/interceptor/header.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { connectRabbitMQ } from './events/rabbitmq.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
+
+  try {
+    await connectRabbitMQ();
+    logger.log('[RabbitMQ] Conexión con el broker establecida correctamente.');
+  } catch (error) {
+    logger.error('[RabbitMQ] Error al conectar con el broker:', error);
+  }
 
   app.enableVersioning({
     type: VersioningType.URI,
@@ -29,15 +37,12 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
-  const logger = new Logger('ServerInfo');
-
   logger.log(
-    `Server: ${serverConfig.get(ServerEnvironmentEnum.SERVER_NAME)} | Header: ${serverConfig.get(ServerEnvironmentEnum.SERVER_HEADER)} | Version: ${serverConfig.get(ServerEnvironmentEnum.SERVER_VERSION)} | Port: ${serverConfig.get(ServerEnvironmentEnum.SERVER_PORT)}`,
+    `[Server] ${serverConfig.get(ServerEnvironmentEnum.SERVER_NAME)} | Header: ${serverConfig.get(ServerEnvironmentEnum.SERVER_HEADER)} | Version: ${serverConfig.get(ServerEnvironmentEnum.SERVER_VERSION)} | Port: ${serverConfig.get(ServerEnvironmentEnum.SERVER_PORT)}`,
   );
 
   app.useGlobalInterceptors(new ServerHeaderInterceptor());
 
   await app.listen(serverConfig.get(ServerEnvironmentEnum.SERVER_PORT) ?? 3000);
 }
-
 void bootstrap();

@@ -8,6 +8,7 @@ import { Cliente } from '../entities/cliente.entity';
 import { Producto } from '../entities/producto.entity';
 import { OrdenEnum } from '../enums/orden.enum';
 import { InventarioEnum } from '../enums/inventario.enum';
+import { publishEvent } from '../events/rabbitmq.service';
 
 @Injectable()
 export class OrdenService {
@@ -20,22 +21,18 @@ export class OrdenService {
     private readonly productoRepository: Repository<Producto>,
   ) {}
 
-  async create(createOrdenDto: CreateOrdenDto) {
-    // Transacción para crear la orden y sus items
+  async create(createOrdenDto: CreateOrdenDto): Promise<Orden> {
     return await this.ordenRepository.manager.transaction(async (manager) => {
-      // Buscar cliente usando el repositorio ya inyectado
       const cliente = await this.clienteRepository.findOne({
         where: { id: createOrdenDto.cliente_id },
       });
       if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
-      // Calcular total
       let total = 0;
       for (const item of createOrdenDto.orden_items) {
         total += item.cantidad * item.precio_unitario;
       }
 
-      // Crear la orden
       const orden = manager.getRepository(Orden).create({
         cliente,
         estado: OrdenEnum.PENDIENTE,
@@ -43,7 +40,6 @@ export class OrdenService {
       });
       await manager.getRepository(Orden).save(orden);
 
-      // Crear los items y validar stock
       for (const item of createOrdenDto.orden_items) {
         const producto = await this.productoRepository.findOne({
           where: { id: item.id_producto },
@@ -54,19 +50,18 @@ export class OrdenService {
             `Producto ${item.id_producto} no encontrado`,
           );
 
-        // Calcular stock actual
         let stock = 0;
         for (const inv of producto.inventarios) {
           if (inv.tipo === InventarioEnum.ENTRADA) stock += inv.cantidad;
           else if (inv.tipo === InventarioEnum.SALIDA) stock -= inv.cantidad;
         }
-        // Restar la cantidad solicitada
+
         if (stock - item.cantidad < 0) {
           throw new NotFoundException(
             `Stock insuficiente para el producto ${item.id_producto}`,
           );
         }
-
+        //
         const ordenItem = manager.getRepository(OrdenItem).create({
           orden,
           producto,
@@ -76,42 +71,92 @@ export class OrdenService {
         await manager.getRepository(OrdenItem).save(ordenItem);
       }
 
-      // Retornar la orden con items
-      return manager.getRepository(Orden).findOne({
+      const ordenCompleta = await manager.getRepository(Orden).findOne({
         where: { id: orden.id },
         relations: ['cliente', 'orden_items', 'orden_items.producto'],
       });
+
+      if (!ordenCompleta) {
+        throw new NotFoundException(
+          'Error al recuperar la orden recién creada',
+        );
+      }
+      publishEvent('orden.creada', {
+        ordenId: ordenCompleta.id,
+        productos: ordenCompleta.orden_items.map((item) => ({
+          producto_id: item.producto.id,
+          cantidad: item.cantidad,
+        })),
+        total: ordenCompleta.total,
+        cliente: {
+          id: ordenCompleta.cliente.id,
+          nombre: ordenCompleta.cliente.nombre,
+          correo: ordenCompleta.cliente.correo,
+          direccion: ordenCompleta.cliente.direccion,
+        },
+      });
+      return ordenCompleta;
     });
   }
 
+  async updateOrden(id: string, updateData: Partial<Orden>): Promise<Orden> {
+    const orden = await this.ordenRepository.findOne({
+      where: { id },
+      relations: ['orden_items', 'orden_items.producto'],
+    });
+
+    if (!orden) {
+      throw new NotFoundException('Orden no encontrada');
+    }
+
+    const estadoAnterior = orden.estado;
+
+    Object.assign(orden, updateData);
+    const ordenActualizada = await this.ordenRepository.save(orden);
+
+    if (
+      updateData.estado &&
+      updateData.estado === OrdenEnum.PAGADO &&
+      estadoAnterior !== OrdenEnum.PAGADO
+    ) {
+      publishEvent('orden.confirmada', {
+        ordenId: orden.id,
+        productos: orden.orden_items.map((item) => ({
+          productoId: item.producto.id,
+          cantidad: item.cantidad,
+        })),
+      });
+    }
+
+    return ordenActualizada;
+  }
+
+  async removeOrden(id: string): Promise<void> {
+    const orden = await this.ordenRepository.findOne({ where: { id } });
+
+    if (!orden) {
+      throw new NotFoundException('Orden no encontrada');
+    }
+
+    await this.ordenRepository.softDelete(id);
+
+    publishEvent('orden.eliminada', {
+      ordenId: id,
+    });
+  }
   findAll() {
     return this.ordenRepository.find({
       relations: ['cliente', 'orden_items', 'orden_items.producto'],
     });
   }
 
-  findOne(id: string) {
-    return this.ordenRepository.findOne({
+  async findOne(id: string): Promise<Orden> {
+    const orden = await this.ordenRepository.findOne({
       where: { id },
       relations: ['cliente', 'orden_items', 'orden_items.producto'],
     });
-  }
 
-  // async update(id: string, updateOrdenDto: UpdateOrdenDto) {
-  //   const orden = await this.ordenRepository.findOne({
-  //     where: { id },
-  //   });
-  //   if (!orden) throw new NotFoundException('Orden no encontrada');
-  //   Object.assign(orden, updateOrdenDto);
-  //   return this.ordenRepository.save(orden);
-  // }
-
-  async remove(id: string) {
-    const orden = await this.ordenRepository.findOne({
-      where: { id },
-    });
     if (!orden) throw new NotFoundException('Orden no encontrada');
-    await this.ordenRepository.softRemove(orden);
-    return { deleted: true };
+    return orden;
   }
 }
