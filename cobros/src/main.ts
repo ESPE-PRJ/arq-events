@@ -17,6 +17,8 @@ import { CobroEnum } from './enums/cobro.enum';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
+
   const cobroService = app.get(CobroService);
 
   await connectRabbitMQ(async (routingKey, payload) => {

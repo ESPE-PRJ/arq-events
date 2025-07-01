@@ -13,6 +13,8 @@ import { InventarioService } from './inventario/inventario.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
+
   // 1. Inicializar conexión a RabbitMQ
   const inventarioService = app.get(InventarioService);
   await connectRabbitMQ((routingKey, payload) => {
